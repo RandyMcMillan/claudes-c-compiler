@@ -1,0 +1,39 @@
+name: Docker CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  docker-build:
+    name: Docker build on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-15-intel
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install colima docker
+          colima start --wait
+          sudo ln -sf ~/.colima/default/docker.sock /var/run/docker.sock || true
+
+      - name: Build Docker image
+        run: docker build -t claudes-c-compiler .
+
+      - name: Run tests in Docker
+        run: docker run --rm claudes-c-compiler
