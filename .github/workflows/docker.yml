@@ -1,0 +1,35 @@
+name: Docker CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build builder stage
+        run: docker build --target builder -t ccc:builder .
+
+      - name: Run tests inside Docker container
+        run: docker run --rm ccc:builder cargo test --verbose
+
+      - name: Build final Docker image
+        run: docker build -t ccc:ci .
+
+      - name: Run Docker container
+        run: |
+          docker run --rm --entrypoint /bin/sh ccc:ci -c \
+            'test -x /usr/local/bin/ccc && test -x /usr/local/bin/ccc-x86 && \
+             test -x /usr/local/bin/ccc-arm && test -x /usr/local/bin/ccc-riscv && \
+             test -x /usr/local/bin/ccc-i686'
